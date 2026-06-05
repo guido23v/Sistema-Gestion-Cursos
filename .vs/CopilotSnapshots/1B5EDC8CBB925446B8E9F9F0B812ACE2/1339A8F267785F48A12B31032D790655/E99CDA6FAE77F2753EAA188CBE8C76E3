@@ -1,0 +1,34 @@
+﻿using Microsoft.EntityFrameworkCore;
+using GestionCursos.Data;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// ── Servicios ─────────────────────────────────────────────────
+builder.Services.AddControllers();
+
+// Base de datos SQLite (archivo local gestion.db)
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlite("Data Source=gestion.db"));
+
+// Swagger / OpenAPI
+// Swagger eliminado: no registrar servicios de OpenAPI
+
+var app = builder.Build();
+
+// ── Crear base de datos al iniciar (si no existen tablas)
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    // Si no usas migraciones, EnsureCreated crea el esquema a partir del modelo.
+    db.Database.EnsureCreated();
+}
+
+// ── Middleware ────────────────────────────────────────────────
+app.MapControllers();
+
+// Ruta raíz útil para navegadores: mensaje corto y enlace a endpoints
+app.MapGet("/", () => Results.Text(
+    "GestionCursos API - endpoints disponibles: GET /api/cursos, GET /api/estudiantes, GET /api/inscripciones",
+    "text/plain"));
+
+app.Run();

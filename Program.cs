@@ -1,0 +1,47 @@
+using Microsoft.EntityFrameworkCore;
+using GestionCursos.Data;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// ── Servicios ─────────────────────────────────────────────────
+builder.Services.AddControllers();
+
+// Base de datos SQLite (archivo local gestion.db)
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlite("Data Source=gestion.db"));
+
+// CORS para permitir solicitudes desde el frontend
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
+
+var app = builder.Build();
+
+// ── Crear base de datos al iniciar (si no existen tablas)
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    db.Database.EnsureCreated();
+}
+
+// ── Middleware ────────────────────────────────────────────────
+app.UseCors("AllowAll");
+app.UseStaticFiles();
+app.MapControllers();
+
+// Ruta raíz: servir index.html
+app.MapGet("/", () => 
+{
+    var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "index.html");
+    if (File.Exists(filePath))
+        return Results.File(filePath, "text/html");
+    return Results.Text("Aplicación cargada - API disponible en /api/cursos");
+});
+
+app.Run();
